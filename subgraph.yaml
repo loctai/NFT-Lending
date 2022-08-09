@@ -1,0 +1,38 @@
+specVersion: 0.0.1
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: LoanNFT
+    network: rinkeby
+    source:
+      address: "0x23dF82472a6D58Db6df2e453cfB0C26Dc5e49252"
+      abi: LoanNFT
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities:
+        - CovenantAccept
+        - CovenantLiquidate
+        - CovenantListed
+        - CovenantReturnNFT
+        - CovenantUnlisted
+        - OwnershipTransferred
+      abis:
+        - name: LoanNFT
+          file: ./abis/LoanNFT.json
+      eventHandlers:
+        - event: CovenantAccept(uint256,address,uint256,uint256)
+          handler: handleCovenantAccept
+        - event: CovenantLiquidate(uint256)
+          handler: handleCovenantLiquidate
+        - event: CovenantListed(uint256,address,uint256,address,uint256,uint256,uint256,uint8,address,address)
+          handler: handleCovenantListed
+        - event: CovenantReturnNFT(uint256)
+          handler: handleCovenantReturnNFT
+        - event: CovenantUnlisted(uint256)
+          handler: handleCovenantUnlisted
+        - event: OwnershipTransferred(indexed address,indexed address)
+          handler: handleOwnershipTransferred
+      file: ./src/loan-nft.ts
