@@ -1,6 +1,6 @@
 specVersion: 0.0.4
 schema:
-  file: ./schema.graphql
+  file: schema.graphql
 dataSources:
   - kind: ethereum
     name: LoanNFT
@@ -14,11 +14,15 @@ dataSources:
       apiVersion: 0.0.6
       language: wasm/assemblyscript
       entities:
-        - Covenant
-        - Event
+        - CovenantAccept
+        - CovenantLiquidate
+        - CovenantListed
+        - CovenantReturnNFT
+        - CovenantUnlisted
+        - OwnershipTransferred
       abis:
         - name: LoanNFT
-          file: ./abis/LoanNFT.json
+          file: LoanNFT/abis/LoanNFT.json
       eventHandlers:
         - event: CovenantAccept(uint256,address,uint256,address,uint256,uint256)
           handler: handleCovenantAccept
@@ -30,4 +34,4 @@ dataSources:
           handler: handleCovenantReturnNFT
         - event: CovenantUnlisted(uint256,address,uint256)
           handler: handleCovenantUnlisted
-      file: ./src/loan-nft.ts
+      file: LoanNFT/LoanNFT.wasm
