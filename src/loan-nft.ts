@@ -48,7 +48,7 @@ export function handleCovenantLiquidate(event: CovenantLiquidate): void {
   eventItem.nftContract = event.params.nftContract
   eventItem.tokenId = event.params.tokenId
   eventItem.action = 'Liquidate'
-  eventItem.actionAddress = event.block.author;
+  eventItem.actionAddress = covenant?.lender || event.block.author;
   eventItem.params = event.params.nftContract.toHex().concat('-').concat(event.params.tokenId.toString()).concat('-').concat(event.params.itemId.toString())		 	
   eventItem.save()
 }
@@ -107,7 +107,7 @@ export function handleCovenantReturnNFT(event: CovenantReturnNFT): void {
   eventItem.nftContract = event.params.nftContract
   eventItem.tokenId = event.params.tokenId
   eventItem.action = 'ReturnNFT'
-  eventItem.actionAddress = event.block.author;
+  eventItem.actionAddress = covenant?.borrower || event.block.author;
   eventItem.params = event.params.nftContract.toHex().concat('-').concat(event.params.tokenId.toString()).concat('-').concat(event.params.itemId.toString())		 	
   eventItem.save()
 }
@@ -128,7 +128,7 @@ export function handleCovenantUnlisted(event: CovenantUnlisted): void {
   eventItem.nftContract = event.params.nftContract
   eventItem.tokenId = event.params.tokenId
   eventItem.action = 'UnList'
-  eventItem.actionAddress = event.block.author;
+  eventItem.actionAddress = covenant?.lender || event.block.author;
   eventItem.params = event.params.nftContract.toHex().concat('-').concat(event.params.tokenId.toString()).concat('-').concat(event.params.itemId.toString())		 	
   eventItem.save()
 }
