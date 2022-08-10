@@ -13,11 +13,11 @@ contract LoanNFT is ReentrancyGuard, Ownable {
 
     uint256 public currentItemId;
     address public feeReceiver;
-    uint256 public feePerThousand = 10; // 10 is 1 since 10/1000 = 0,01
+    uint256 public feeList = 10; // 10 is 1 since 10/1000 = 0,01
     uint256 public constant PERCENTS_DIVIDER = 1000;
 
     bytes4 public constant ERC721_Interface = bytes4(0x80ac58cd);
-
+    bool private initialized;
     enum CovenantStatus {
         LISTING,
         LOCKED,
@@ -97,7 +97,7 @@ contract LoanNFT is ReentrancyGuard, Ownable {
     modifier isListing(uint256 itemId) {
         require(
             idToCovenant[itemId].status == CovenantStatus.LISTING,
-            "Loan covenant is not listing."
+            "Item is not listing."
         );
         _;
     }
@@ -109,8 +109,11 @@ contract LoanNFT is ReentrancyGuard, Ownable {
         _;
     }
 
-    constructor(uint256 fee) {
-        feePerThousand = fee;
+    function initialize(uint256 fee, address _feeReceiver) external {
+        require(!initialized, "Contract instance has already been initialized");
+        initialized = true;
+        feeList = fee;
+        feeReceiver = _feeReceiver;
     }
 
     function setFeeReceiver(address _feeReceiver) external onlyOwner {
@@ -124,9 +127,9 @@ contract LoanNFT is ReentrancyGuard, Ownable {
     function setFeePerThousand(uint256 _newFee) external onlyOwner {
         require(
             _newFee > 0 && _newFee <= 500,
-            "The fee must be between 0 and 999"
+            "The fee must be between 0 and 500"
         );
-        feePerThousand = _newFee;
+        feeList = _newFee;
     }
 
     function listCovenant(
@@ -180,7 +183,7 @@ contract LoanNFT is ReentrancyGuard, Ownable {
     {
         require(
             idToCovenant[itemId].status == CovenantStatus.LISTING,
-            "Loan covenant is not listing."
+            "Item is not listing."
         );
         Covenant storage loanCovenant = idToCovenant[itemId];
         IERC721(loanCovenant.nftContract).transferFrom(
@@ -196,8 +199,28 @@ contract LoanNFT is ReentrancyGuard, Ownable {
         );
     }
 
+    function endListedItemAdmin(uint256 itemId) external nonReentrant onlyOwner {
+        require(
+            idToCovenant[itemId].status == CovenantStatus.LISTING,
+            "Item is canceled or lend out"
+        );
+
+        Covenant storage loanCovenant = idToCovenant[itemId];
+        IERC721(loanCovenant.nftContract).transferFrom(
+            address(this),
+            loanCovenant.lender,
+            loanCovenant.tokenId
+        );
+        loanCovenant.status = CovenantStatus.ENDED;
+        emit CovenantUnlisted(
+            itemId,
+            loanCovenant.nftContract,
+            loanCovenant.tokenId
+        );
+    }
+
     function acceptCovenant(uint256 itemId, uint256 daysToRent)
-        public
+        external
         payable
         nonReentrant
         isListing(itemId)
@@ -215,7 +238,7 @@ contract LoanNFT is ReentrancyGuard, Ownable {
         uint256 rentPrice = daysToRent.mul(loanCovenant.priceBorrow);
         uint256 totalAmount = rentPrice + loanCovenant.price;
 
-        uint256 feeAmount = rentPrice.mul(feePerThousand).div(PERCENTS_DIVIDER);
+        uint256 feeAmount = rentPrice.mul(feeList).div(PERCENTS_DIVIDER);
 
         uint256 lenderAmount = rentPrice.sub(feeAmount);
 
@@ -340,24 +363,22 @@ contract LoanNFT is ReentrancyGuard, Ownable {
     }
 
     function withdrawToken(
-        address tokenAdr,
-        address recipient,
+        address tokenAddress,
+        address receiver,
         uint256 amount
     ) external nonReentrant onlyOwner {
-        IERC20 paymentToken = IERC20(tokenAdr);
-        require(
-            paymentToken.balanceOf(address(this)) >= amount,
-            "Insufficient payment funds"
-        );
-        paymentToken.transfer(recipient, amount);
+        if (IERC20(tokenAddress).balanceOf(address(this)) >= amount) {
+            IERC20(tokenAddress).transfer(receiver, amount);
+        }
     }
 
-    function withdrawNFT(address nftContract, uint256 tokenId)
+    function withdrawNFT(address nftContract, address receiver,  uint256 tokenId)
         external
         nonReentrant
         onlyOwner
     {
-        IERC721 paymentToken = IERC721(nftContract);
-        paymentToken.transferFrom(address(this), msg.sender, tokenId);
+        if (IERC721(nftContract).ownerOf(tokenId) == address(this)) {
+            IERC721(nftContract).transferFrom(address(this), receiver, tokenId);
+        }
     }
 }
